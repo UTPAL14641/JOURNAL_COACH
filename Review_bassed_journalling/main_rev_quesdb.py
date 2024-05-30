@@ -100,6 +100,6 @@ if question:
     # Store the updated prompt in the session state
     st.session_state["prompt"] = prompt
     prompt.append({"role": "assistant", "content": result})
-    print(prompt)
+    
     # Store the updated prompt in the session state
     st.session_state["prompt"] = prompt
