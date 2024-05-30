@@ -1,4 +1,4 @@
-'''import re
+import re
 from typing import Tuple, List
 
 from langchain_openai import OpenAIEmbeddings
@@ -20,8 +20,9 @@ client = OpenAI(
 embeddings = OpenAIEmbeddings()
 question="Why I no longer feel motivated to work"
 db = FAISS.load_local("faiss_index_ques_200_50", embeddings,allow_dangerous_deserialization =True)
-print(db.similarity_search(question, k=4))'''
-import pkg_resources
+print(db.similarity_search(question, k=4))
+
+'''import pkg_resources
 
 def get_installed_version(package_name):
     try:
@@ -47,3 +48,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+'''

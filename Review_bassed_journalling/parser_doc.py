@@ -87,8 +87,8 @@ def build_vectordb(folder_path, openai_api_key):
   index = docs_to_index(documents, openai_api_key)
   return index
 
-pdf_folder_path = "Docs2"  # Modify this path to your folder location
+pdf_folder_path = "Review_bassed_journalling\Docs2"  # Modify this path to your folder location
 
 db = build_vectordb(pdf_folder_path, os.environ.get("OPENAI_API_KEY"))
 
-db.save_local("faiss_index_ques_200_50_sep")
+db.save_local("faiss_index_ques_200_50")

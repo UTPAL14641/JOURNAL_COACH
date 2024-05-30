@@ -21,7 +21,7 @@ embeddings = OpenAIEmbeddings()
 # Build the vectordb and store it in the session state
 if not st.session_state.get("vectordb"):
     with st.spinner("Building Vector Database..."):
-        st.session_state["vectordb"] = FAISS.load_local(r"Review_bassed_journalling\faiss_index_ques_200_50", embeddings,allow_dangerous_deserialization =True)
+        st.session_state["vectordb"] = FAISS.load_local("faiss_index_ques_200_50", embeddings,allow_dangerous_deserialization =True)
 #####################
 
 st.title("CBT Chatbot for Reframing Negative thoughts")
