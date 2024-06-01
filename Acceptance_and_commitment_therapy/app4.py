@@ -1,19 +1,18 @@
 import streamlit as st
 import os
 from openai import OpenAI
+
 # Load environment variables
-client = OpenAI(
-    # defaults to os.environ.get("OPENAI_API_KEY")
-    api_key=os.environ.get("OPENAI_API_KEY"),
-)
+client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
 def get_completion(prompt, model="gpt-3.5-turbo"):
     messages = [{"role": "user", "content": prompt}]
     response = client.chat.completions.create(
-        model=model,messages=messages,temperature=0,)
+        model=model, messages=messages, temperature=0,
+    )
     return response.choices[0].message.content
+
 def generate_summary(values, obstacles, obstacle_ratings, action_plan):
-    # Combine all parts of the survey into a single string
     survey_data = f"""
     Values:
     Work/Education: {values['Work/Education']}
@@ -32,41 +31,20 @@ def generate_summary(values, obstacles, obstacle_ratings, action_plan):
     Relationships: {action_plan['Relationships']}
     Leisure: {action_plan['Leisure']}
     Personal Growth/Health: {action_plan['Personal Growth/Health']}
-    
     """
 
-    # Prompt for the ChatGPT API
     prompt = f"""
-    You are a real Acceptance and Commitment therapist, provide a summary and analysis of the following survey responses as a Acceptance and Commitment Coach.
-    keep it short and to the point without loosing important semantic information about the user:
+    You are a real Acceptance and Commitment therapist. Provide a summary and analysis of the following survey responses as an Acceptance and Commitment Coach.
+    Keep it short and to the point without losing important semantic information about the user:
     {survey_data}.
-    
     """
     try:
-        print(prompt)
+        
         summary = get_completion(prompt)
         return summary
     except Exception as e:
         return f"An error occurred: {str(e)}"
 
-# Function to display the survey
-import streamlit as st
-
-def generate_summary(values, obstacles, obstacle_ratings, action_plan):
-    summary = ""
-    summary += "### Values:\n"
-    for key, value in values.items():
-        summary += f"**{key}:** {value}\n"
-    
-    summary += "\n### Obstacles:\n"
-    for key, value in obstacles.items():
-        summary += f"**{key}:** {value} (Rating: {obstacle_ratings[key]})\n"
-    
-    summary += "\n### Action Plan:\n"
-    for key, value in action_plan.items():
-        summary += f"**{key}:** {value}\n"
-    
-    return summary
 def generate_session_summary(prompt):
     session_conversation = "\n".join([f"{msg['role'].capitalize()}: {msg['content']}" for msg in prompt if msg['role'] in ['assistant', 'user']])
     detailed_summary_prompt = f"""
@@ -74,17 +52,30 @@ def generate_session_summary(prompt):
     - Initial Issue
     - Therapist's Intervention
     - Key Points Discussed
-    - Mood and Atitude analysis
+    - Mood and Attitude analysis
     - Future Actions
     - Next Steps
 
     Conversation:
     {session_conversation}
     """
-
     try:
         session_summary = get_completion(detailed_summary_prompt)
         return session_summary
+    except Exception as e:
+        return f"An error occurred: {str(e)}"
+
+def check_session_completion(prompt):
+    session_conversation = "\n".join([f"{msg['role'].capitalize()}: {msg['content']}" for msg in prompt if msg['role'] in ['assistant', 'user']])
+    check_completion_prompt = f"""
+    You are a Real Acceptance and Commitment therapist. Based on the following conversation, determine if the basic goal of the therapy session has been reached. Answer with a simple 'Yes' or 'No'.
+
+    Conversation:
+    {session_conversation}
+    """
+    try:
+        completion_status = get_completion(check_completion_prompt).strip().lower()
+        return completion_status == 'yes'
     except Exception as e:
         return f"An error occurred: {str(e)}"
 
@@ -134,12 +125,9 @@ def display_survey():
         st.success("Survey Submitted! Here is the summary:")
         st.write(summary)
 
-
-# Function to start the chatbot session
 def chat_with_therapist(summary=""):
     if summary:
-        prompt_template = f"""
-        You are a Real Acceptance and Commitment therapist named Alaba, We are having a therapy session. ACT is a therapeutic approach that encourages individuals to accept and integrate challenging thoughts and emotions, focusing on value-driven actions to enhance psychological flexibility, rather than replacing maladaptive thoughts.
+        prompt_template = f"""You are a Real Acceptance and Commitment therapist named Alaba, We are having a therapy session. ACT is a therapeutic approach that encourages individuals to accept and integrate challenging thoughts and emotions, focusing on value-driven actions to enhance psychological flexibility, rather than replacing maladaptive thoughts.
         Behave like a Real Human therapist by responding compassionately as an expert understanding the vulnerabilities and emotions of the user. 
         Don't mention anything about ACT technique that you are using in your responses instead just use it for formulating your responses.
         Respond breifly and to the point using the survey summary and earlier chat information with short assesment and one question for user to repond.
@@ -169,7 +157,7 @@ def chat_with_therapist(summary=""):
         Below is a summary of the Bull's-Eye Values Survey (BEVS) taken by the user which is a tool for assessing values, values-action discrepancies, 
         and barriers to value-based living and use these information to address users condition more effectively:
         """
-        prompt_template+=summary
+        prompt_template += summary
     else:
         prompt_template = """You are a Real Acceptance and Commitment therapist named Alaba, We are having a therapy session. ACT is a therapeutic approach that encourages individuals to accept and integrate challenging thoughts and emotions, focusing on value-driven actions to enhance psychological flexibility, rather than replacing maladaptive thoughts.
         Behave like a Real Human therapist by responding compassionately as an expert understanding the vulnerabilities and emotions of the user. 
@@ -199,8 +187,8 @@ def chat_with_therapist(summary=""):
 
     st.write("### Chat with the ACT Therapist")
     prompt = st.session_state.get("prompt", [{"role": "system", "content": "none"}])
+    interaction_count = st.session_state.get("interaction_count", 0)
 
-    # Display previous chat messages
     for message in prompt:
         if message["role"] != "system":
             with st.chat_message(message["role"]):
@@ -208,23 +196,17 @@ def chat_with_therapist(summary=""):
 
     question = st.chat_input("Share with me anything that is bothering you and you want to work on")
     if question:
-        # search_results
-        pdf_extract = ""
-        # Update the prompt with the pdf extract
         prompt[0] = {
             "role": "system",
-            "content": prompt_template.format(pdf_extract=pdf_extract),
+            "content": prompt_template,
         }
-        # Add the user's question to the prompt and display it
         prompt.append({"role": "user", "content": question})
         with st.chat_message("user"):
             st.write(question)
 
-        # Display an empty assistant message while waiting for the response
         with st.chat_message("assistant"):
             botmsg = st.empty()
 
-        # Call ChatGPT with streaming and display the response as it comes
         response = []
         result = ""
         for chunk in client.chat.completions.create(
@@ -236,24 +218,30 @@ def chat_with_therapist(summary=""):
                 result = "".join(response).strip()
                 botmsg.write(result)
 
-        # Add the assistant's response to the prompt
         prompt.append({"role": "assistant", "content": result})
-
-        # Store the updated prompt in the session state
+        interaction_count += 2  # Each user input and assistant response is considered one interaction
         st.session_state["prompt"] = prompt
-        prompt.append({"role": "assistant", "content": result})
+        st.session_state["interaction_count"] = interaction_count
 
-        # Store the updated prompt in the session state
-        st.session_state["prompt"] = prompt
-    ######
+        if interaction_count >= 8:
+            if check_session_completion(prompt):
+                st.write("### Concluding Remarks")
+                st.write("It seems like we have reached the basic goal of this therapy session.")
+                if st.button("Continue Session"):
+                    st.session_state["interaction_count"] = 0
+                if st.button("End Session"):
+                    session_summary = generate_session_summary(prompt)
+                    st.write(session_summary)
+                    st.session_state.clear()
+                    st.success("Session ended. Summary provided.")
+                    return
+
     if st.button("End Conversation"):
         session_summary = generate_session_summary(prompt)
         st.write(session_summary)
-        # Clear the session state to reset the chat
         st.session_state.clear()
         st.success("Session ended. Summary provided.")
-    
-# Main function to run the app
+
 def main():
     st.sidebar.title("Survey Options")
     survey_option = st.sidebar.selectbox("Would you like to attempt the survey?", ("Select an option", "Yes", "No"))
